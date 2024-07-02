@@ -1,4 +1,5 @@
-I like kotlin so this language will be based on its syntax
+# Spec
+Most of it is from Lox (I read about it from https://craftinginterpreters.com) but I like kotlin so i will try to make this thing look like it.
 
 - everything is a statement except variable decaration
 - first class function
@@ -12,6 +13,12 @@ var a = "whatever"
 var b // default to null
 // no const
 ```
+
+## Implicit statement termination
+will use newline as statement terminator unless it's in the middle of an expression 
+so this will be done in parser
+semicolon is optional
+
 
 ## Standard library
 - Math

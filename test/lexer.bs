@@ -1,3 +1,4 @@
 var 🦌 = "shikanokonokonokoshitantan";
 var size = 45.45;
 var ว่าง; // This is nil
+print size;

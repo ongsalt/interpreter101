@@ -1,7 +1,13 @@
 import { Lexer } from "./interpreter/lexer";
 
 export async function runFile(path: string) {
-    const content = await Bun.file(path).text()
+    const file = Bun.file(path)
+    if (!await file.exists()) {
+        console.log(`File not found: ${process.argv[2]}`)
+        return
+    }
+    console.log(`Running ${process.argv[2]}`)
+    const content = await file.text()
     run(content)
 }
 
