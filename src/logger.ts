@@ -1,5 +1,11 @@
+import type { InterpreterError } from "./interpreter/error"
+
 export class Logger {
-    log(...params: any) {
+    static log(...params: any) {
         console.log(...params)
+    }
+    
+    static error(error: InterpreterError) {
+        console.error(`[]`)
     }
 }

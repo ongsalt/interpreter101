@@ -4,8 +4,7 @@ I like kotlin so this language will be based on its syntax
 - first class function
 - oop (prototype)
 - dynamic typing
-- allow any valid unicode identifier
-
+- allow any valid unicode string as an identifier but a string that is a number literal
 
 ## Variable
 ```

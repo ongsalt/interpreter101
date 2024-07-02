@@ -28,3 +28,5 @@ export type Token = {
             value: number
         }
     )
+
+export type TokenType = Token['type']
