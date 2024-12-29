@@ -19,6 +19,17 @@ will use newline as statement terminator unless it's in the middle of an express
 so this will be done in parser
 semicolon is optional
 
+## Operation Precedence
+mostly copied from mdn
+1. grouping: ()
+2. access, call and new: x.y, a() new B()
+3. prefix operators: not exist yet
+4. postfix operators: 1..10
+4. math
+5. comparation
+6. AND
+7. OR
+8. assignment
 
 ## Standard library
 - Math

@@ -1,7 +1,6 @@
 import { Logger } from "../logger"
-import { ParsingError } from "./error"
 import { keywords } from "./keyword"
-import type { KeywordTokenType, LiteralTokenType, SpecialTokenType, SymbolTokenType, Token, TokenType, TwoCharacterSymbolTokenType } from "./token"
+import type { KeywordTokenType, SpecialTokenType, SymbolTokenType, Token, TwoCharacterSymbolTokenType } from "./token"
 
 export class Lexer {
     private hasError = false
@@ -77,7 +76,11 @@ export class Lexer {
                     } else if (this.isValidIdentifierStaringCharacter(c)) { // Identifier
                         this.identifier();
                     } else {
-                        Logger.error(new ParsingError(this.line, "Unexpected character"))
+                        Logger.error({
+                            kind: "parsing-error",
+                            line: this.line,
+                            message: "Unexpected character"
+                        })
                     }
 
 
@@ -127,7 +130,11 @@ export class Lexer {
         }
 
         if (this.isAtEnd()) {
-            Logger.error(new ParsingError(this.line, "Unterminated string"))
+            Logger.error({
+                kind: "parsing-error",
+                line: this.line,
+                message: "Unterminated string"
+            })
             return;
         }
 

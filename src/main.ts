@@ -1,9 +1,4 @@
-/**
- *  
- */
-
 import { runFile, startRepl } from "./entry";
-
 
 if (process.argv.length > 3) {
     console.log(`usage: bun src/main.ts {file}`)

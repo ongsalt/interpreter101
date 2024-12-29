@@ -14,19 +14,24 @@ export type TwoCharacterSymbolTokenType = "BANG" | "BANG_EQUAL" |
 
 export type SpecialTokenType = "EOF"
 
+
+export type NumericLiteralToken = {
+    type: NumberLiteralTokenType,
+    value: number
+}
+
+export type LiteralToken = {
+    type: LiteralTokenType,
+    value: string
+}
+
 export type Token = {
     line: number,
     lexeme: string
 } & (
         {
             type: KeywordTokenType | SymbolTokenType | TwoCharacterSymbolTokenType | SpecialTokenType
-        } | {
-            type: LiteralTokenType,
-            value: string
-        } | {
-            type: NumberLiteralTokenType,
-            value: number
-        }
+        } | NumericLiteralToken | LiteralToken
     )
 
 export type TokenType = Token['type']

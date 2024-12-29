@@ -1,5 +1,7 @@
 # interpreter100
+most of this is based on [craftinginterpreters](craftinginterpreters.com) but in typescript instead
 
+## How to run
 To install dependencies:
 
 ```bash
