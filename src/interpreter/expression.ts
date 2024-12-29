@@ -1,4 +1,4 @@
-import type { LiteralToken, NumericLiteralToken, Token } from "./token"
+import type { LiteralToken, Token } from "./token"
 
 export type Expr = BinaryExpr | Grouping | Literal | Unary
 
@@ -13,7 +13,7 @@ export type BinaryExpr = {
     kind: "binary",
     left: Expr,
     operator: Token
-    rigth: Expr
+    right: Expr
 }
 
 export type Grouping = {
@@ -23,12 +23,7 @@ export type Grouping = {
 
 export type Literal = {
     kind: "literal",
-    value: LiteralToken | NumericLiteralToken,
-}
-
-export type NumericLiteral = {
-    kind: "numeric-iteral",
-    value: NumericLiteralToken,
+    value: LiteralToken,
 }
 
 export type Unary = {

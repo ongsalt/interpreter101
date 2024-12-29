@@ -1,8 +1,7 @@
-export type KeywordTokenType = "AND" | "CLASS" | "ELSE" | "FALSE" | "FUN" | "FOR" | "IF" | "NIL" | "OR" |
-    "PRINT" | "RETURN" | "SUPER" | "THIS" | "TRUE" | "VAR" | "WHILE"
+export type KeywordTokenType = "AND" | "CLASS" | "ELSE" | "FUN" | "FOR" | "IF" | "OR" |
+    "PRINT" | "RETURN" | "SUPER" | "THIS" | "VAR" | "WHILE"
 
-export type LiteralTokenType = "IDENTIFIER" | "STRING"
-export type NumberLiteralTokenType = "NUMBER"
+export type LiteralTokenType = "IDENTIFIER" | "STRING" | "TRUE" | "FALSE" | "NUMBER" | "NIL"
 
 export type SymbolTokenType = "LEFT_PAREN" | "RIGHT_PAREN" | "LEFT_BRACE" | "RIGHT_BRACE" |
     "COMMA" | "DOT" | "MINUS" | "PLUS" | "SEMICOLON" | "SLASH" | "STAR" | "NEW_LINE"
@@ -14,15 +13,25 @@ export type TwoCharacterSymbolTokenType = "BANG" | "BANG_EQUAL" |
 
 export type SpecialTokenType = "EOF"
 
+export type LiteralToken = NonUnitLiteralToken | UnitLiteralToken
 
-export type NumericLiteralToken = {
-    type: NumberLiteralTokenType,
+export type NonUnitLiteralToken = {
+    type: "IDENTIFIER",
+    value: string
+} | {
+    type: "STRING",
+    value: string
+} | {
+    type: "NUMBER",
     value: number
 }
 
-export type LiteralToken = {
-    type: LiteralTokenType,
-    value: string
+export type UnitLiteralToken = {
+    type: "TRUE",
+} | {
+    type: "FALSE",
+} | {
+    type: "NIL",
 }
 
 export type Token = {
@@ -31,7 +40,7 @@ export type Token = {
 } & (
         {
             type: KeywordTokenType | SymbolTokenType | TwoCharacterSymbolTokenType | SpecialTokenType
-        } | NumericLiteralToken | LiteralToken
+        } | LiteralToken
     )
 
 export type TokenType = Token['type']

@@ -89,6 +89,14 @@ export class Lexer {
                     break;
             }
         }
+
+        this.tokens.push({
+            type: "EOF",
+            lexeme: "",
+            line: this.line,
+        })
+
+        return this.tokens
     }
 
     match(expected: string) {

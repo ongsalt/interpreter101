@@ -1,4 +1,6 @@
 import { Lexer } from "./interpreter/lexer";
+import { parse } from "./interpreter/parser";
+import { printExpression } from "./utils/formatting";
 
 export async function runFile(path: string) {
     const file = Bun.file(path)
@@ -14,7 +16,19 @@ export async function runFile(path: string) {
 export function run(code: string) {
     const lexer = new Lexer(code)
     lexer.scan()
-    console.log(lexer.tokens)
+    const { tokens } = lexer
+    console.log(tokens)
+    const expression = parse(tokens)
+
+    if (expression === null) {
+        return
+    }
+    
+    console.dir(expression, {
+        depth: null
+    })
+
+    printExpression(expression)
 }
 
 export async function startRepl() {
