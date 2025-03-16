@@ -1,6 +1,7 @@
 import { err, ok, type Result } from "../utils/result";
 import { ParserError } from "./error";
-import type { Token } from "./token";
+import type { BinaryExpr, Expr, Unary } from "./expression";
+import type { LiteralToken, Token } from "./token";
 
 // mostly copied from Sway compiler
 export class Parser {
@@ -24,6 +25,7 @@ export class Parser {
         return this.peek()?.line
     }
 
+    // TODO: keep stack trace
     private safe<T>(fn: () => T): Result<T> { // auto unwinding
         const position = this.current
         // BRUH
@@ -50,21 +52,35 @@ export class Parser {
         return token as unknown as T
     }
 
-    private consumeAll<T>(consume: () => T): T[] {
-        const results: T[] = []
+    private repeat<T>(fn: () => T) {
         while (true) {
-            const res = this.safe(() => consume())
-            if (!res.ok) {
-                // console.log(`[consumeAll] stoping ${res.ok}`)
-                break
+            const { ok } = this.safe(fn)
+            if (!ok) {
+                return
             }
-            results.push(res.value)
         }
-
-        return results
     }
 
-    private oneOf<T>(fns: (() => T)[]): Result<T> {
+    // private consumeReduce<T, U = T[]>(consume: () => T, reducer: (acc: U, value: T) => U, initial: U): U {
+    //     let acc = initial
+    //     this.repeat(() => {
+    //         const value = consume()
+    //         acc = reducer(acc, value)
+    //     })
+    //     return acc
+    // }
+
+    // private consumeAll<T>(consume: () => T): T[] {
+    //     return this.consumeReduce(consume, (acc, value) => [...acc, value], [] as T[])
+    // }
+
+    private consumeAll<T>(consume: () => T): T[] {
+        const out: T[] = []
+        this.repeat(() => out.push(consume()))
+        return out
+    }
+
+    private safeOneOf<T>(fns: (() => T)[]): Result<T> {
         for (const fn of fns) {
             const res = this.safe(() => fn())
             if (res.ok) {
@@ -75,11 +91,11 @@ export class Parser {
         return err(undefined)
     }
 
-    private oneOfOrThrow<T, E extends Error = ParserError>(
+    private oneOf<T, E extends Error = ParserError>(
         fns: (() => T)[],
         errorBuilder: (e: any) => E = (() => new ParserError("expected", "not exist") as Error as E)
     ): T {
-        const res = this.oneOf(fns)
+        const res = this.safeOneOf(fns)
         if (!res.ok) {
             throw errorBuilder(res.error)
         }
@@ -87,10 +103,15 @@ export class Parser {
         return res.value
     }
 
+    // shorthand for oneOf for token
+    private match(...types: Token["type"][]) {
+        return this.oneOf(types.map(it => () => this.consume(it)))
+    }
+
     // ignore every token untill reach next statement 
-    private synchronize()  {
+    private synchronize() {
         while (!this.isAtEnd) {
-            const current = this.next()       
+            const current = this.next()
             const t: Token["type"][] = ["CLASS", "FUN", "VAR", "FOR", "IF", "WHILE", "PRINT", "RETURN"]
             if (t.includes(current.type)) {
                 return
@@ -99,6 +120,107 @@ export class Parser {
     }
 
     parse() {
+        return this.expression()
+    }
 
+    expression(): Expr {
+        return this.equality()
+    }
+
+    equality(): Expr {
+        let expr = this.comparison()
+        this.repeat(() => {
+            const operator = this.match("BANG_EQUAL", "EQUAL_EQUAL");
+            const right = this.comparison();
+            expr = {
+                kind: "binary",
+                left: expr,
+                operator,
+                right
+            }
+        })
+
+        return expr
+    }
+
+    comparison(): Expr {
+        let expr = this.term()
+        this.repeat(() => {
+            const operator = this.match("LESS", "LESS_EQUAL", "GREATER", "GREATER_EQUAL");
+            const right = this.term();
+            expr = {
+                kind: "binary",
+                left: expr,
+                operator,
+                right
+            }
+        })
+        return expr
+    }
+
+    term(): Expr {
+        let expr = this.factor()
+        this.repeat(() => {
+            const operator = this.match("MINUS", "PLUS");
+            const right = this.factor();
+            expr = {
+                kind: "binary",
+                left: expr,
+                operator,
+                right
+            }
+        })
+        return expr
+    }
+
+    factor(): Expr {
+        let expr = this.unary()
+        this.repeat(() => {
+            const operator = this.match("SLASH", "STAR");
+            const right = this.unary();
+            expr = {
+                kind: "binary",
+                left: expr,
+                operator,
+                right
+            }
+        })
+        return expr
+    }
+
+    unary(): Expr {
+        return this.oneOf([
+            () => {
+                const operator = this.match("BANG", "MINUS")
+                const right = this.unary()
+                return {
+                    kind: "unary",
+                    operator,
+                    right,
+                }
+            },
+            () => this.primary(),
+        ])
+    }
+
+    primary(): Expr {
+        return this.oneOf<Expr>([
+            () => {
+                const value = this.match("NUMBER", "STRING", "TRUE", "FALSE", "NIL") as LiteralToken
+                return {
+                    kind: "literal",
+                    value
+                }
+            },
+            () => {
+                this.consume("LEFT_PAREN")
+                const expression = this.expression()
+                this.consume("RIGHT_PAREN")
+                return {
+                    kind: "grouping",
+                    expression
+                }
+            },
+        ])
     }
 }

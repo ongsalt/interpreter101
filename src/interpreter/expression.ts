@@ -6,7 +6,7 @@ export type SyntaxKind =
     "binary" |
     "grouping" |
     "literal" |
-    "numeric-iteral" |
+    "numeric-literal" |
     "unary"
 
 export type BinaryExpr = {
