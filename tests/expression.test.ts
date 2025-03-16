@@ -14,5 +14,6 @@ test("Basic expression parsing", async () => {
 
     expect(expression).not.toBe(null)
 
-    printExpression(expression!)
+    console.dir(expression, { depth: null })
+    printExpression(expression)
 })
