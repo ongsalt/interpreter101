@@ -28,8 +28,21 @@ export class Interpreter {
     evaluate(expression: Expr): LoxValue {
         switch (expression.kind) {
             case "binary":
-                const right = this.evaluate(expression.right)
+                // short circuiting when there is AND or OR
                 const left = this.evaluate(expression.left)
+                const l = LoxValue.isTruthy(left)
+                if (expression.operator.type === "OR" && l) {
+                    return LoxValue.true()
+                } else if (expression.operator.type === "AND" && !l) {
+                    return LoxValue.false()
+                }
+                const right = this.evaluate(expression.right)
+                if (expression.operator.type === "OR") {
+                    return LoxValue.of(l || LoxValue.isTruthy(right))
+                } else if (expression.operator.type === "AND") {
+                    return LoxValue.of(l && LoxValue.isTruthy(right))
+                }
+
                 if (right.kind !== "number" || left.kind !== "number") {
                     throw new Error("Unimplemented")
                 }
@@ -149,5 +162,4 @@ export class Interpreter {
                 console.log(`Object ${value.id}`)
         }
     }
-
 }

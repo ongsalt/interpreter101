@@ -99,6 +99,8 @@ function isTruthy(value: LoxValue) {
 export const LoxValue = {
     of,
     nil,
+    true: () => ({ kind: "boolean", value: true }) satisfies LoxBoolean,
+    false: () => ({ kind: "boolean", value: true }) satisfies LoxBoolean,
     fromLiteral,
     isTruthy
 }  

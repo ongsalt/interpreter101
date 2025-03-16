@@ -177,21 +177,19 @@ export class Parser {
 
     variableDeclaration(): VariableDeclarationStatement {
         this.consume("VAR")
-        return this.must("Invalid variable declaration", () => {
-            const name = this.consume("IDENTIFIER").lexeme
-            const value = this.safe(() => {
-                this.consume("EQUAL")
-                return this.expression()
-            })
-            // console.log(value.error)
-            this.consume("SEMICOLON")
-            return {
-                kind: "variable-declaration",
-                constant: false, // TODO: think about this,
-                name,
-                value: value?.value ?? null
-            }
+        const name = this.must("this must be a valid identifier", () => this.consume("IDENTIFIER").lexeme)
+        const value = this.safe(() => {
+            this.consume("EQUAL")
+            return this.expression()
         })
+
+        this.must("missing semicolon", () => this.consume("SEMICOLON"))
+        return {
+            kind: "variable-declaration",
+            constant: false, // TODO: think about this,
+            name,
+            value: value?.value ?? null
+        }
     }
 
     expressionStatement(): ExpressionStatement {
@@ -230,7 +228,7 @@ export class Parser {
             () => this.block(),
             () => this.if(),
             () => this.assignment(),
-            () => this.equality(),
+            () => this.logicalOr(),
         ])
     }
 
@@ -283,6 +281,41 @@ export class Parser {
             },
             value
         }
+    }
+
+
+    // TODOL: refactor these into a hof
+
+    logicalOr(): Expr {
+        let expr = this.logicalAnd()
+        this.repeat(() => {
+            const operator = this.match("OR");
+            const right = this.logicalAnd();
+            expr = {
+                kind: "binary",
+                left: expr,
+                operator,
+                right
+            }
+        })
+
+        return expr
+    }
+
+    logicalAnd(): Expr {
+        let expr = this.equality()
+        this.repeat(() => {
+            const operator = this.match("AND");
+            const right = this.equality();
+            expr = {
+                kind: "binary",
+                left: expr,
+                operator,
+                right
+            }
+        })
+
+        return expr
     }
 
     equality(): Expr {
@@ -362,6 +395,7 @@ export class Parser {
     }
 
     primary(): Expr {
+        // console.log("jashdugy")
         return this.oneOf<Expr>([
             () => {
                 const value = this.match("NUMBER", "STRING", "TRUE", "FALSE", "NIL") as LiteralToken
@@ -386,6 +420,12 @@ export class Parser {
                     expression
                 }
             },
+            // why tf this take like 2 hour to run
+            // () => this.expression(),
+            // So, it becuase of or???
+            () => this.block(),
+            () => this.if(),
+            () => this.assignment(),
         ])
     }
 }

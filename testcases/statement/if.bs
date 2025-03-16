@@ -1,10 +1,11 @@
 var a = 4;
-var b = if a > 5 { 12 } else { 54 };
+// very cursed
+var b = if 1 == 1 or a > { print "evaluated"; 10 } { 12 } else { 54 };
 
 print b;
 
 if b == 12 {
     print "b is 12";
 } else {
-    print "skmdnfhukgujyk"
+    print "skmdnfhukgujyk";
 }

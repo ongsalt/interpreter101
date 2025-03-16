@@ -11,7 +11,6 @@ topLevelExpression → ifExpression | block
 
 exprStmt       → expression ";" ;
 printStmt      → "print" expression ";" ;
-<!-- implicit return??? -->
 
 declaration    → varDecl;
 
@@ -23,10 +22,13 @@ expression     → assignment | equality | block | ifExpression | forExpression 
 ifExpression   → "if" expression block
                ( "else" (block | ifExpression) )? ;
 
-<!-- match -->
+<!-- match ??? -->
 
 assignment     → IDENTIFIER "=" assignment
-               | equality ;
+               | logic_or ;
+
+logic_or       → logic_and ( "or" logic_and )* ;
+logic_and      → equality ( "and" equality )* ;
 
 equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
