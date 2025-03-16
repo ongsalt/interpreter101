@@ -41,8 +41,7 @@ export type BlockExpression = {
     statements: Statement[]
 }
 
-export type Expr = BinaryExpr | Grouping | Literal | Unary | Identifier | BlockExpression
-
+export type Expr = BinaryExpr | Grouping | Literal | Unary | Identifier | BlockExpression | AssignmentExpression
 
 export type AssignmentExpression = {
     kind: "assignment",

@@ -147,6 +147,10 @@ export class Parser {
 
     statement(): Statement {
         return this.oneOf<Statement>([
+            () => ({
+                kind: "expression",
+                expression: this.block()
+            }),
             () => this.variableDeclaration(),
             () => this.expressionStatement(),
             () => this.printStatement(),
@@ -189,7 +193,11 @@ export class Parser {
     }
 
     expression(): Expr {
-        return this.equality()
+        return this.oneOf<Expr>([
+            () => this.equality(),
+            () => this.assignment(),
+            () => this.block()
+        ])
     }
 
     assignment(): AssignmentExpression {

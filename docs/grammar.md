@@ -2,9 +2,10 @@ program        → statement* EOF ;
 
 block          → "{" statement* "}" ;
 
-statement      → exprStmt
+statement      → block 
+               | exprStmt;
                | printStmt 
-               | declaration ;
+               | declaration 
 
 exprStmt       → expression ";" ;
 printStmt      → "print" expression ";" ;
@@ -18,8 +19,6 @@ expression     → assignment | equality | block;
 
 assignment     → IDENTIFIER "=" assignment
                | equality ;
-
-
 
 equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
