@@ -1,7 +1,7 @@
 import { err, ok, type Result as NormalResult } from "../utils/result";
 import { ParserError } from "./error";
-import type { AssignmentExpression, BinaryExpr, BlockExpression, Expr, ExpressionStatement, Identifier, IfExpression, PrintStatement, Program, Statement, Unary, VariableDeclarationStatement } from "./grammar";
-import type { IdentifierToken, LiteralToken, NonUnitLiteralToken, Token } from "./token";
+import type { AssignmentExpression, BlockExpression, Expr, ExpressionStatement, IfExpression, PrintStatement, Program, Statement, VariableDeclarationStatement } from "./grammar";
+import type { IdentifierToken, LiteralToken, Token } from "./token";
 
 type Result<T> = NormalResult<T, ParserError>
 

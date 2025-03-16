@@ -28,25 +28,23 @@ export class Interpreter {
     evaluate(expression: Expr): LoxValue {
         switch (expression.kind) {
             case "binary":
+                const { operator } = expression
                 // short circuiting when there is AND or OR
                 const left = this.evaluate(expression.left)
                 const l = LoxValue.isTruthy(left)
-                if (expression.operator.type === "OR" && l) {
-                    return LoxValue.true()
-                } else if (expression.operator.type === "AND" && !l) {
-                    return LoxValue.false()
+                if (operator.type === "OR" && l || operator.type === "AND" && !l) {
+                    return left
                 }
                 const right = this.evaluate(expression.right)
-                if (expression.operator.type === "OR") {
-                    return LoxValue.of(l || LoxValue.isTruthy(right))
-                } else if (expression.operator.type === "AND") {
-                    return LoxValue.of(l && LoxValue.isTruthy(right))
+                if (operator.type === "OR" || operator.type === "AND") {
+                    return right
                 }
 
+                // math
                 if (right.kind !== "number" || left.kind !== "number") {
                     throw new Error("Unimplemented")
                 }
-                switch (expression.operator.type) {
+                switch (operator.type) {
                     case "PLUS":
                         return LoxValue.of(left.value + right.value)
                     case "MINUS":
