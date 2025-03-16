@@ -42,7 +42,20 @@ export type BlockExpression = {
     last: Expr | null
 }
 
-export type Expr = BinaryExpr | Grouping | Literal | Unary | Identifier | BlockExpression | AssignmentExpression
+export type IfExpression = {
+    kind: "if",
+    condition: Expr,
+    then: BlockExpression,
+    else: BlockExpression | IfExpression | null
+}
+
+export type ForExpression = {
+    kind: "for"
+}
+
+export type WhileExpression = {
+    kind: "while"
+}
 
 export type AssignmentExpression = {
     kind: "assignment",
@@ -50,6 +63,11 @@ export type AssignmentExpression = {
     value: Expr
 }
 
+export type Expr = BinaryExpr | Grouping | Literal | Unary | Identifier | BlockExpression | AssignmentExpression
+    | IfExpression | ForExpression | WhileExpression
+
+
+        
 export type ExpressionStatement = {
     kind: "expression",
     expression: Expr

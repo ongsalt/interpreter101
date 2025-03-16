@@ -11,7 +11,7 @@ export type RuntimeErrorKind = "identifier-not-found" | "unsupported-operation"
 
 export class ParserError extends Error {
     constructor(public kind: ParserErrorKind, message: string = "", token?: Token) {
-        super(`${kind}: ${message} at line ${token?.line ?? ""}:${token?.lexeme}`);
+        super(`${kind}: ${message} at line ${token?.line ?? ""}`);
     }
 }
 

@@ -5,6 +5,9 @@ block          → "{" statement* "}" ;
 statement      →  exprStmt;
                | printStmt 
                | declaration 
+               | topLevelExpression
+
+topLevelExpression → ifExpression | block
 
 exprStmt       → expression ";" ;
 printStmt      → "print" expression ";" ;
@@ -14,7 +17,13 @@ declaration    → varDecl;
 
 varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 
-expression     → assignment | equality | block;
+<!-- bruh -->
+expression     → assignment | equality | block | ifExpression | forExpression | whileExpression | range;
+
+ifExpression   → "if" expression block
+               ( "else" (block | ifExpression) )? ;
+
+<!-- match -->
 
 assignment     → IDENTIFIER "=" assignment
                | equality ;

@@ -1,4 +1,4 @@
-import { unreachable } from "../../utils";
+import { unimplemented, unreachable } from "../../utils";
 import { RuntimeError } from "../error";
 import type { Expr, Program, Statement } from "../grammar";
 import { Scope } from "./scope";
@@ -42,11 +42,21 @@ export class Interpreter {
                         return LoxValue.of(left.value * right.value)
                     case "SLASH":
                         return LoxValue.of(left.value / right.value)
+                    case "EQUAL_EQUAL":
+                        return LoxValue.of(left.value === right.value)
                     case "BANG_EQUAL":
-                        // call that class op overload
-                        throw new Error("Unimplemented")
+                        return LoxValue.of(left.value !== right.value)
+                    case "LESS":
+                        return LoxValue.of(left.value < right.value)
+                    case "LESS_EQUAL":
+                        return LoxValue.of(left.value <= right.value)
+                    case "GREATER":
+                        return LoxValue.of(left.value > right.value)
+                    case "GREATER_EQUAL":
+                        return LoxValue.of(left.value >= right.value)
+
                 }
-                unreachable()
+                unimplemented(expression.operator.lexeme)
             case "grouping":
                 return this.evaluate(expression.expression)
             case "literal":
@@ -59,7 +69,7 @@ export class Interpreter {
                     }
                     return LoxValue.of(-res.value)
                 }
-                unreachable()
+                unimplemented(expression.operator.lexeme)
             case "identifier":
                 const value = this.currentScope.get(expression.name)
                 if (!value) {
@@ -82,8 +92,27 @@ export class Interpreter {
                 } finally {
                     this.currentScope = previous;
                 }
+                // TODO: think about what this should return
+                // we should not use js error for lox error
+                break
+            case "assignment":
+                // fuck js switch case
+                const value_ = this.evaluate(expression.value)
+                this.scope.set(expression.to.name, value_)
+                return value_
+
+            case "if":
+                const { condition, else: _else, kind, then } = expression
+                const isOk = this.evaluate(condition);
+                if (LoxValue.isTruthy(isOk)) {
+                    return this.evaluate(then)
+                } else if (_else) {
+                    return this.evaluate(_else);
+                } else {
+                    return LoxValue.nil()
+                }
         }
-        unreachable()
+        unreachable(`Unimplemented expression: ${expression.kind}`)
     }
 
     evaluateStatement(statement: Statement) {

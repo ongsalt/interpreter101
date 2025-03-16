@@ -1,6 +1,6 @@
 import { err, ok, type Result as NormalResult } from "../utils/result";
 import { ParserError } from "./error";
-import type { AssignmentExpression, BinaryExpr, BlockExpression, Expr, ExpressionStatement, Identifier, PrintStatement, Program, Statement, Unary, VariableDeclarationStatement } from "./grammar";
+import type { AssignmentExpression, BinaryExpr, BlockExpression, Expr, ExpressionStatement, Identifier, IfExpression, PrintStatement, Program, Statement, Unary, VariableDeclarationStatement } from "./grammar";
 import type { IdentifierToken, LiteralToken, NonUnitLiteralToken, Token } from "./token";
 
 type Result<T> = NormalResult<T, ParserError>
@@ -8,6 +8,7 @@ type Result<T> = NormalResult<T, ParserError>
 // mostly copied from Sway compiler
 export class Parser {
     private current = 0
+    lastError: ParserError | null = null
     constructor(public tokens: Token[]) { }
 
     private get isAtEnd() {
@@ -32,8 +33,14 @@ export class Parser {
     private must<T>(message: string, fn: () => T): T {
         try {
             return fn()
-        } catch {
-            throw new ParserError("invalid", message, this.peek())
+        } catch (e) {
+            const error = e as ParserError;
+            if (error.kind === "invalid") {
+                // this.lastError = error
+                throw this.lastError
+            }
+            this.lastError = new ParserError("invalid", message, this.peek())
+            throw this.lastError
         }
     }
 
@@ -139,7 +146,11 @@ export class Parser {
 
     parse() {
         // console.log(this.tokens)
-        return this.program()
+        try {
+            return this.program()
+        } catch {
+            throw this.lastError
+        }
     }
 
     program(): Program {
@@ -155,27 +166,12 @@ export class Parser {
         }
     }
 
-    block(): BlockExpression {
-        this.consume("LEFT_BRACE")
-        const { out: statements, terminatingError } = this.consumeAll(() => this.statement())
-        if (terminatingError.kind === "invalid") {
-            throw terminatingError
-        }
-        const last = this.safe(() => this.expression())
-        // console.log(last.ok)
-        this.must("block must have closing brace", () => this.consume("RIGHT_BRACE"))
-        return {
-            kind: "block",
-            statements,
-            last: last?.value ?? null
-        }
-    }
-
     statement(): Statement {
         return this.oneOf<Statement>([
             () => this.variableDeclaration(),
             () => this.expressionStatement(),
             () => this.printStatement(),
+            () => this.topLevelExpression()
         ])
     }
 
@@ -209,10 +205,22 @@ export class Parser {
 
     printStatement(): PrintStatement {
         this.consume("PRINT")
-        const expression = this.expression()
-        this.consume("SEMICOLON")
+        const expression = this.must("There is nothing to print", () => this.expression())
+        this.must("missing semicolon", () => this.consume("SEMICOLON"))
         return {
             kind: "print",
+            expression
+        }
+    }
+
+    topLevelExpression(): Statement {
+        const expression = this.oneOf<Expr>([
+            () => this.if(),
+            () => this.block(),
+        ])
+
+        return {
+            kind: "expression",
             expression
         }
     }
@@ -220,9 +228,46 @@ export class Parser {
     expression(): Expr {
         return this.oneOf<Expr>([
             () => this.block(),
+            () => this.if(),
             () => this.assignment(),
             () => this.equality(),
         ])
+    }
+
+    block(): BlockExpression {
+        this.consume("LEFT_BRACE")
+        const { out: statements, terminatingError } = this.consumeAll(() => this.statement())
+        if (terminatingError.kind === "invalid") {
+            throw terminatingError
+        }
+        const last = this.safe(() => this.expression())
+        // console.log(last.ok)
+        this.must("block must have closing brace", () => this.consume("RIGHT_BRACE"))
+        return {
+            kind: "block",
+            statements,
+            last: last?.value ?? null
+        }
+    }
+
+    if(): IfExpression {
+        this.consume("IF")
+        const condition = this.expression()
+        const then = this.must("There must be a block after an if condition", () => this.block());
+        const _else = this.safe(() => {
+            this.consume("ELSE")
+            return this.must("There must be a block or another condition after an else", () => this.oneOf<IfExpression | BlockExpression>([
+                () => this.block(),
+                () => this.if(),
+            ]))
+        })
+
+        return {
+            kind: "if",
+            condition,
+            then,
+            else: _else.value ?? null
+        }
     }
 
     assignment(): AssignmentExpression {

@@ -85,9 +85,20 @@ function fromLiteral(token: LiteralToken) {
     unreachable("invalid literal, wtf")
 }
 
+function isTruthy(value: LoxValue) {
+    if (value.kind === "unit") {
+        return false
+    }
+    if (value.kind === "object") {
+        return true
+    }
+    return !!value.value // js
+}
+
 
 export const LoxValue = {
     of,
     nil,
-    fromLiteral
+    fromLiteral,
+    isTruthy
 }  
