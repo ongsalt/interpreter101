@@ -1,4 +1,4 @@
-import type { Expr } from "../interpreter/expression";
+import type { Expr } from "../interpreter/grammar";
 
 export function printExpression(expression: Expr) {
     console.log(stringify(expression))

@@ -15,10 +15,12 @@ export type SpecialTokenType = "EOF"
 
 export type LiteralToken = NonUnitLiteralToken | UnitLiteralToken
 
-export type NonUnitLiteralToken = {
+export type IdentifierToken = {
     type: "IDENTIFIER",
     value: string
-} | {
+}
+
+export type NonUnitLiteralToken = {
     type: "STRING",
     value: string
 } | {
@@ -40,7 +42,7 @@ export type Token = {
 } & (
         {
             type: KeywordTokenType | SymbolTokenType | TwoCharacterSymbolTokenType | SpecialTokenType
-        } | LiteralToken
+        } | LiteralToken | IdentifierToken
     )
 
 export type TokenType = Token['type']

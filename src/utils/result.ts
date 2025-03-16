@@ -34,3 +34,8 @@ export function wrap<T>(fn: () => T): Result<T> {
     }
 }
 
+export const Result = {
+    wrap,
+    ok,
+    err
+}

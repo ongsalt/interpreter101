@@ -1,7 +1,7 @@
 import { err, ok, type Result } from "../utils/result";
 import { ParserError } from "./error";
-import type { BinaryExpr, Expr, Unary } from "./expression";
-import type { LiteralToken, Token } from "./token";
+import type { AssignmentExpression, BinaryExpr, BlockExpression, Expr, ExpressionStatement, Identifier, PrintStatement, Program, Statement, Unary, VariableDeclarationStatement } from "./grammar";
+import type { IdentifierToken, LiteralToken, NonUnitLiteralToken, Token } from "./token";
 
 // mostly copied from Sway compiler
 export class Parser {
@@ -41,11 +41,12 @@ export class Parser {
         }
     }
 
-    private consume<T extends Token>(type: T["type"]): T { // TODO: im too lazy to make the type
+    private consume<T = Token>(type: Token["type"], message?: string): T { // TODO: im too lazy to make the type
         const token = this.peek()!
 
         if (token.type != type) {
-            throw new ParserError("expected", `Expecting ${type} at line ${token.line}`) // TODO: make error enum
+            const errorMessage = message ?? `Expecting ${type}`
+            throw new ParserError("expected", `${errorMessage} at line ${token.line}`) // TODO: make error enum
         }
 
         this.next()
@@ -104,7 +105,7 @@ export class Parser {
     }
 
     // shorthand for oneOf for token
-    private match(...types: Token["type"][]) {
+    private match<const T extends Token["type"][]>(...types: T) {
         return this.oneOf(types.map(it => () => this.consume(it)))
     }
 
@@ -120,11 +121,90 @@ export class Parser {
     }
 
     parse() {
-        return this.expression()
+        // console.log(this.tokens)
+        return this.program()
+    }
+
+    program(): Program {
+        const statements = this.consumeAll(() => this.statement())
+        // console.log(this.peek())
+        this.consume("EOF")
+        return {
+            kind: "program",
+            statements
+        }
+    }
+
+    block(): BlockExpression {
+        this.consume("LEFT_BRACE")
+        const statements = this.consumeAll(() => this.statement())
+        this.consume("RIGHT_BRACE")
+        return {
+            kind: "block",
+            statements
+        }
+    }
+
+    statement(): Statement {
+        return this.oneOf<Statement>([
+            () => this.variableDeclaration(),
+            () => this.expressionStatement(),
+            () => this.printStatement(),
+        ])
+    }
+
+    variableDeclaration(): VariableDeclarationStatement {
+        this.consume("VAR")
+        const name = this.consume("IDENTIFIER").lexeme
+        const value = this.safe(() => {
+            this.consume("EQUAL")
+            return this.expression()
+        })
+        this.consume("SEMICOLON")
+        return {
+            kind: "variable-declaration",
+            constant: false, // TODO: think about this,
+            name,
+            value: value.value ?? null
+        }
+    }
+
+    expressionStatement(): ExpressionStatement {
+        const expression = this.expression()
+        this.consume("SEMICOLON")
+        return {
+            kind: "expression",
+            expression
+        }
+    }
+
+    printStatement(): PrintStatement {
+        this.consume("PRINT")
+        const expression = this.expression()
+        this.consume("SEMICOLON")
+        return {
+            kind: "print",
+            expression
+        }
     }
 
     expression(): Expr {
         return this.equality()
+    }
+
+    assignment(): AssignmentExpression {
+        // this should accept thing like `object.value`
+        const to = this.consume<IdentifierToken>("IDENTIFIER")
+        this.consume("EQUAL")
+        const value = this.expression()
+        return {
+            kind: "assignment",
+            to: {
+                kind: "identifier",
+                name: to.value
+            },
+            value
+        }
     }
 
     equality(): Expr {
@@ -210,6 +290,13 @@ export class Parser {
                 return {
                     kind: "literal",
                     value
+                }
+            },
+            () => {
+                const name = this.consume<IdentifierToken>("IDENTIFIER").value
+                return {
+                    kind: "identifier",
+                    name
                 }
             },
             () => {

@@ -62,7 +62,8 @@ export class Lexer {
                     // Ignore whitespace.
                     break;
                 case '\n':
-                    this.addNonLiteralToken("NEW_LINE")
+                    // TODO: think about semicolon vs this
+                    // this.addNonLiteralToken("NEW_LINE")
                     this.line++;
                     break;
                 case '"':

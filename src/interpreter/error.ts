@@ -6,10 +6,17 @@ export type InterpreterError = {
     kind: "parsing-error"
 }
 
-export type ErrorKind = "expected" | "invalid" | "stop-signal"
+export type ParserErrorKind = "expected" | "invalid" | "stop-signal"
+export type RuntimeErrorKind = "identifier-not-found" | "unsupported-operation"
 
 export class ParserError extends Error {
-    constructor(public kind: ErrorKind,message: string) {
+    constructor(public kind: ParserErrorKind, message: string = "") {
+        super(`${kind}: ${message}`);
+    }
+}
+
+export class RuntimeError extends Error {
+    constructor(public kind: RuntimeErrorKind, message: string = "") {
         super(`${kind}: ${message}`);
     }
 }

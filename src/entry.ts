@@ -1,6 +1,6 @@
+import { evaluate } from "./interpreter/runtime/interpreter";
 import { Lexer } from "./interpreter/lexer";
-import { parse } from "./interpreter/parse";
-import { printExpression } from "./utils/formatting";
+import { Parser } from "./interpreter/parser";
 
 export async function runFile(path: string) {
     const file = Bun.file(path)
@@ -18,17 +18,17 @@ export function run(code: string) {
     lexer.scan()
     const { tokens } = lexer
     console.log(tokens)
-    const expression = parse(tokens)
+    const expression = new Parser(tokens).parse()
 
     if (expression === null) {
         return
     }
-    
+
     console.dir(expression, {
         depth: null
     })
 
-    printExpression(expression)
+    evaluate(expression)
 }
 
 export async function startRepl() {
