@@ -1,34 +1,36 @@
 export type Ok<T> = {
     ok: true,
-    value: T 
+    value: T
+    error?: undefined
 }
 
 export type Err<E> = {
-    ok: false 
+    ok: false
+    value?: undefined,
     error: E
 }
 
-export type Result<T = void, E = string> = Ok<T> | Err<E>
+export type Result<T = void, E = undefined> = Ok<T> | Err<E>
 
-export function Ok<T>(value: T): Ok<T> {
+export function ok<T>(value: T): Ok<T> {
     return {
         ok: true,
         value
     }
-} 
+}
 
-export function Err<E>(error: E): Err<E> {
+export function err<E>(error: E): Err<E> {
     return {
         ok: false,
         error
     }
-} 
+}
 
 export function wrap<T>(fn: () => T): Result<T> {
     try {
-        return Ok(fn())
+        return ok(fn())
     } catch (e) {
-        return Err((e as Error).message)
+        return err(undefined)
     }
 }
 

@@ -1,5 +1,5 @@
 import { Lexer } from "./interpreter/lexer";
-import { parse } from "./interpreter/parser";
+import { parse } from "./interpreter/parse";
 import { printExpression } from "./utils/formatting";
 
 export async function runFile(path: string) {

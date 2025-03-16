@@ -1,243 +1,104 @@
-// i want to do functional parsing, will implement next time
+import { err, ok, type Result } from "../utils/result";
+import { ParserError } from "./error";
+import type { Token } from "./token";
 
-import { Logger } from "../logger";
-import { reportError, type InterpreterError } from "./error";
-import type { Expr } from "./expression";
-import type { NonUnitLiteralToken, Token, TokenType } from "./token";
+// mostly copied from Sway compiler
+export class Parser {
+    private current = 0
+    constructor(public tokens: Token[]) { }
 
-export function parse(tokens: Token[]) {
-    let index = 0
-
-    function current(): Token {
-        return tokens[index]
+    private get isAtEnd() {
+        return this.current >= this.tokens.length;
     }
 
-    function previous(): Token {
-        return tokens[index - 1]
+    private next() {
+        return this.tokens[this.current++] // yield current and move the pointer to next one
     }
 
-    function isAtEnd() {
-        return current().type == "EOF";
+    private peek() {
+        if (this.isAtEnd) return undefined;
+        return this.tokens.at(this.current)!;
     }
 
+    get line() {
+        return this.peek()?.line
+    }
 
-    function advance() {
-        if (!isAtEnd()) {
-            index += 1
+    private safe<T>(fn: () => T): Result<T> { // auto unwinding
+        const position = this.current
+        // BRUH
+        try {
+            return ok(fn())
+        } catch (error) {
+            if (!(error instanceof ParserError)) {
+                throw error;
+            }
+            // console.log('[unwinding] ',error)
+            this.current = position
+            return err(error as any)
         }
-        return previous()
     }
 
-    function check(tokenTypes: TokenType): boolean {
-        if (isAtEnd()) {
-            return false
+    private consume<T extends Token>(type: T["type"]): T { // TODO: im too lazy to make the type
+        const token = this.peek()!
+
+        if (token.type != type) {
+            throw new ParserError("expected", `Expecting ${type} at line ${token.line}`) // TODO: make error enum
         }
-        return current().type == tokenTypes;
+
+        this.next()
+        return token as unknown as T
     }
 
-    function match(...tokenTypes: TokenType[]) {
-        for (const tokenType of tokenTypes) {
-            if (check(tokenType)) {
-                advance();
-                return true;
+    private consumeAll<T>(consume: () => T): T[] {
+        const results: T[] = []
+        while (true) {
+            const res = this.safe(() => consume())
+            if (!res.ok) {
+                // console.log(`[consumeAll] stoping ${res.ok}`)
+                break
+            }
+            results.push(res.value)
+        }
+
+        return results
+    }
+
+    private oneOf<T>(fns: (() => T)[]): Result<T> {
+        for (const fn of fns) {
+            const res = this.safe(() => fn())
+            if (res.ok) {
+                return ok(res.value)
             }
         }
-        return false
+
+        return err(undefined)
     }
 
-    function consume(tokenType: TokenType, message: string) {
-        if (check(tokenType)) {
-            return advance()
+    private oneOfOrThrow<T, E extends Error = ParserError>(
+        fns: (() => T)[],
+        errorBuilder: (e: any) => E = (() => new ParserError("expected", "not exist") as Error as E)
+    ): T {
+        const res = this.oneOf(fns)
+        if (!res.ok) {
+            throw errorBuilder(res.error)
         }
 
-        throw error(current(), message);
+        return res.value
     }
 
-    function synchronize() {
-        advance();
-
-        while (!isAtEnd()) {
-            // skip until endline
-            if (previous().type == "SEMICOLON") return;
-
-            // or until detect a (likely) new statement
-            const target: TokenType[] = ["CLASS", "FUN", "VAR", "FOR", "IF", "WHILE", "PRINT", "RETURN"]
-            if (target.includes(current().type)) {
+    // ignore every token untill reach next statement 
+    private synchronize()  {
+        while (!this.isAtEnd) {
+            const current = this.next()       
+            const t: Token["type"][] = ["CLASS", "FUN", "VAR", "FOR", "IF", "WHILE", "PRINT", "RETURN"]
+            if (t.includes(current.type)) {
                 return
             }
-
-            advance();
         }
     }
 
-    function error(token: Token, message: string): InterpreterError {
-        // Logger.error(token, message);
-        reportError(token, message)
-        return {
-            kind: "parsing-error",
-            line: token.line,
-            message
-        }
-    }
-
-    // Rule ---
-
-    function expression(): Expr {
-        return equality()
-    }
-
-    function equality(): Expr {
-        let expr = comparison()
-
-        while (match("BANG_EQUAL", "EQUAL_EQUAL")) {
-            const operator = previous();
-            const right = comparison();
-            expr = {
-                kind: "binary",
-                left: expr,
-                operator: operator,
-                right
-            }
-        }
-
-        return expr
-    }
-
-    function comparison(): Expr {
-        let expr = term()
-
-        while (match("LESS", "LESS_EQUAL", "GREATER", "GREATER_EQUAL")) {
-            const operator = previous();
-            const right = term();
-            expr = {
-                kind: "binary",
-                left: expr,
-                operator: operator,
-                right
-            }
-        }
-
-        return expr
+    parse() {
 
     }
-
-    function term(): Expr {
-        let expr = factor()
-
-        while (match("MINUS", "PLUS")) {
-            const operator = previous();
-            const right = factor();
-            expr = {
-                kind: "binary",
-                left: expr,
-                operator: operator,
-                right
-            }
-        }
-
-        return expr
-    }
-
-    function factor(): Expr {
-        let expr = unary()
-
-        while (match("STAR", "SLASH")) {
-            const operator = previous();
-            const right = unary();
-            expr = {
-                kind: "binary",
-                left: expr,
-                operator: operator,
-                right
-            }
-        }
-
-        return expr
-    }
-
-    function unary(): Expr {
-        if (match("BANG", "MINUS")) {
-            const operator = previous();
-            const right = unary();
-            return {
-                kind: "unary",
-                operator,
-                right
-            }
-        }
-        return primary()
-    }
-
-    function primary(): Expr {
-        if (match("FALSE")) {
-            return {
-                kind: "literal",
-                value: {
-                    type: "FALSE",
-                }
-            }
-        }
-
-        if (match("TRUE")) {
-            return {
-                kind: "literal",
-                value: {
-                    type: "TRUE",
-                }
-            }
-        }
-
-        if (match("FALSE")) {
-            return {
-                kind: "literal",
-                value: {
-                    type: "FALSE",
-                }
-            }
-        }
-
-        if (match("FALSE")) {
-            return {
-                kind: "literal",
-                value: {
-                    type: "NIL",
-                }
-            }
-        }
-
-        if (match("NUMBER")) {
-            return {
-                kind: "literal",
-                value: {
-                    type: "NUMBER",
-                    value: (previous() as NonUnitLiteralToken).value as number
-                }
-            }
-        }
-
-        if (match("LEFT_PAREN")) {
-            const expr = expression();
-            consume("RIGHT_PAREN", "Expect ')' after expression.");
-            return {
-                kind: "grouping",
-                expression: expr
-            }
-        }
-
-        throw error(current(), "Expect expression.");
-
-    }
-
-
-
-    // Body --- 
-    
-    try {
-        return expression();
-    } catch (error) {
-        console.error(error)
-        return null;
-    }
-
 }
-
