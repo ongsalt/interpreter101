@@ -2,8 +2,7 @@ program        → statement* EOF ;
 
 block          → "{" statement* "}" ;
 
-statement      → block 
-               | exprStmt;
+statement      →  exprStmt;
                | printStmt 
                | declaration 
 

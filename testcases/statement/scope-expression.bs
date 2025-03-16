@@ -1,0 +1,10 @@
+var a = {
+  var c = 25;
+  // rust thing
+  25 * 8
+
+
+};
+
+
+print a;

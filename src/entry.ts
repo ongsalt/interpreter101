@@ -1,4 +1,3 @@
-import { evaluate } from "./interpreter/runtime/interpreter";
 import { Lexer } from "./interpreter/lexer";
 import { Parser } from "./interpreter/parser";
 
@@ -28,7 +27,6 @@ export function run(code: string) {
         depth: null
     })
 
-    evaluate(expression)
 }
 
 export async function startRepl() {

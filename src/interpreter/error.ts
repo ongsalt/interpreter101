@@ -6,12 +6,12 @@ export type InterpreterError = {
     kind: "parsing-error"
 }
 
-export type ParserErrorKind = "expected" | "invalid" | "stop-signal"
+export type ParserErrorKind = "expected" | "invalid"
 export type RuntimeErrorKind = "identifier-not-found" | "unsupported-operation"
 
 export class ParserError extends Error {
-    constructor(public kind: ParserErrorKind, message: string = "") {
-        super(`${kind}: ${message}`);
+    constructor(public kind: ParserErrorKind, message: string = "", token?: Token) {
+        super(`${kind}: ${message} at line ${token?.line ?? ""}:${token?.lexeme}`);
     }
 }
 

@@ -1,7 +1,9 @@
-import { err, ok, type Result } from "../utils/result";
+import { err, ok, type Result as NormalResult } from "../utils/result";
 import { ParserError } from "./error";
 import type { AssignmentExpression, BinaryExpr, BlockExpression, Expr, ExpressionStatement, Identifier, PrintStatement, Program, Statement, Unary, VariableDeclarationStatement } from "./grammar";
 import type { IdentifierToken, LiteralToken, NonUnitLiteralToken, Token } from "./token";
+
+type Result<T> = NormalResult<T, ParserError>
 
 // mostly copied from Sway compiler
 export class Parser {
@@ -25,16 +27,27 @@ export class Parser {
         return this.peek()?.line
     }
 
-    // TODO: keep stack trace
+
+    // use this when we think the programmer is making some silly error
+    private must<T>(message: string, fn: () => T): T {
+        try {
+            return fn()
+        } catch {
+            throw new ParserError("invalid", message, this.peek())
+        }
+    }
+
+    // we will do auto unwinding for expression
     private safe<T>(fn: () => T): Result<T> { // auto unwinding
         const position = this.current
         // BRUH
         try {
             return ok(fn())
-        } catch (error) {
-            if (!(error instanceof ParserError)) {
-                throw error;
-            }
+        } catch (e) {
+            const error = e as ParserError
+            // if (error.kind === "invalid") {
+            //     throw error;
+            // }
             // console.log('[unwinding] ',error)
             this.current = position
             return err(error as any)
@@ -46,18 +59,19 @@ export class Parser {
 
         if (token.type != type) {
             const errorMessage = message ?? `Expecting ${type}`
-            throw new ParserError("expected", `${errorMessage} at line ${token.line}`) // TODO: make error enum
+            throw new ParserError("expected", `${errorMessage}`, this.peek()) // TODO: make error enum
         }
 
         this.next()
         return token as unknown as T
     }
 
-    private repeat<T>(fn: () => T) {
+    // this is hell for error message
+    private repeat<T>(fn: () => T): ParserError {
         while (true) {
-            const { ok } = this.safe(fn)
+            const { ok, error } = this.safe(fn)
             if (!ok) {
-                return
+                return error
             }
         }
     }
@@ -75,30 +89,33 @@ export class Parser {
     //     return this.consumeReduce(consume, (acc, value) => [...acc, value], [] as T[])
     // }
 
-    private consumeAll<T>(consume: () => T): T[] {
+    private consumeAll<T>(consume: () => T) {
         const out: T[] = []
-        this.repeat(() => out.push(consume()))
-        return out
+        const terminatingError = this.repeat(() => out.push(consume()))
+        return { out, terminatingError }
     }
 
+    // todo: think of error message for this
     private safeOneOf<T>(fns: (() => T)[]): Result<T> {
         for (const fn of fns) {
             const res = this.safe(() => fn())
+            // check if it critical or not
             if (res.ok) {
                 return ok(res.value)
+            } else if (res.error.kind === "invalid") {
+                return err(res.error)
             }
         }
 
-        return err(undefined)
+        return err(new ParserError("expected", "one of", this.peek()))
     }
 
-    private oneOf<T, E extends Error = ParserError>(
+    private oneOf<T>(
         fns: (() => T)[],
-        errorBuilder: (e: any) => E = (() => new ParserError("expected", "not exist") as Error as E)
     ): T {
         const res = this.safeOneOf(fns)
         if (!res.ok) {
-            throw errorBuilder(res.error)
+            throw res.error
         }
 
         return res.value
@@ -126,8 +143,11 @@ export class Parser {
     }
 
     program(): Program {
-        const statements = this.consumeAll(() => this.statement())
-        // console.log(this.peek())
+        const { out: statements, terminatingError } = this.consumeAll(() => this.statement())
+        if (terminatingError.kind === "invalid") {
+            // console.log(this.peek())
+            console.error(terminatingError)
+        }
         this.consume("EOF")
         return {
             kind: "program",
@@ -137,20 +157,22 @@ export class Parser {
 
     block(): BlockExpression {
         this.consume("LEFT_BRACE")
-        const statements = this.consumeAll(() => this.statement())
-        this.consume("RIGHT_BRACE")
+        const { out: statements, terminatingError } = this.consumeAll(() => this.statement())
+        if (terminatingError.kind === "invalid") {
+            throw terminatingError
+        }
+        const last = this.safe(() => this.expression())
+        // console.log(last.ok)
+        this.must("block must have closing brace", () => this.consume("RIGHT_BRACE"))
         return {
             kind: "block",
-            statements
+            statements,
+            last: last?.value ?? null
         }
     }
 
     statement(): Statement {
         return this.oneOf<Statement>([
-            () => ({
-                kind: "expression",
-                expression: this.block()
-            }),
             () => this.variableDeclaration(),
             () => this.expressionStatement(),
             () => this.printStatement(),
@@ -159,23 +181,26 @@ export class Parser {
 
     variableDeclaration(): VariableDeclarationStatement {
         this.consume("VAR")
-        const name = this.consume("IDENTIFIER").lexeme
-        const value = this.safe(() => {
-            this.consume("EQUAL")
-            return this.expression()
+        return this.must("Invalid variable declaration", () => {
+            const name = this.consume("IDENTIFIER").lexeme
+            const value = this.safe(() => {
+                this.consume("EQUAL")
+                return this.expression()
+            })
+            // console.log(value.error)
+            this.consume("SEMICOLON")
+            return {
+                kind: "variable-declaration",
+                constant: false, // TODO: think about this,
+                name,
+                value: value?.value ?? null
+            }
         })
-        this.consume("SEMICOLON")
-        return {
-            kind: "variable-declaration",
-            constant: false, // TODO: think about this,
-            name,
-            value: value.value ?? null
-        }
     }
 
     expressionStatement(): ExpressionStatement {
         const expression = this.expression()
-        this.consume("SEMICOLON")
+        this.consume("SEMICOLON", "statement must end with a ;")
         return {
             kind: "expression",
             expression
@@ -194,9 +219,9 @@ export class Parser {
 
     expression(): Expr {
         return this.oneOf<Expr>([
-            () => this.equality(),
+            () => this.block(),
             () => this.assignment(),
-            () => this.block()
+            () => this.equality(),
         ])
     }
 

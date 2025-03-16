@@ -36,5 +36,21 @@ test("nested scope", async () => {
     // })
     
     interpreter.run()
+})
 
+
+test("scope expression", async () => {
+    const input = await Bun.file("testcases/statement/scope-expression.bs").text()
+
+    const lexer = new Lexer(input)
+    const tokens = lexer.scan()
+    const parser = new Parser(tokens);
+    const program = parser.parse()
+    const interpreter = new Interpreter(program)
+
+    // console.dir(program, {
+    //     depth: null
+    // })
+    
+    interpreter.run()
 })

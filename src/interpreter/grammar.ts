@@ -38,7 +38,8 @@ export type Identifier = {
 // will this make thing complicate 
 export type BlockExpression = {
     kind: "block",
-    statements: Statement[]
+    statements: Statement[],
+    last: Expr | null
 }
 
 export type Expr = BinaryExpr | Grouping | Literal | Unary | Identifier | BlockExpression | AssignmentExpression

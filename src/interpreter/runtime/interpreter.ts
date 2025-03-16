@@ -73,12 +73,15 @@ export class Interpreter {
                     for (const statement of expression.statements) {
                         this.evaluateStatement(statement)
                     }
+                    if (expression.last) {
+                        return this.evaluate(expression.last)
+                    }
+                    return LoxValue.nil()
                 } catch (e) {
                     console.error(e)
+                } finally {
+                    this.currentScope = previous;
                 }
-                this.currentScope = previous;
-                // TODO: make this return last expression
-                return LoxValue.nil()
         }
         unreachable()
     }
