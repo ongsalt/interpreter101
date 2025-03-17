@@ -1,6 +1,6 @@
 import { err, ok, type Result as NormalResult } from "../utils/result";
 import { ParserError } from "./error";
-import type { AssignmentExpression, BlockExpression, Expr, ExpressionStatement, IfExpression, PrintStatement, Program, Statement, VariableDeclarationStatement } from "./grammar";
+import type { AssignmentExpression, BlockExpression, CallExpression, Expr, ExpressionStatement, ForExpression, Identifier, IfExpression, PrintStatement, Program, RangeExpression, Statement, VariableDeclarationStatement, WhileExpression } from "./grammar";
 import type { IdentifierToken, LiteralToken, Token } from "./token";
 
 type Result<T> = NormalResult<T, ParserError>
@@ -214,6 +214,8 @@ export class Parser {
     topLevelExpression(): Statement {
         const expression = this.oneOf<Expr>([
             () => this.if(),
+            () => this.while(),
+            () => this.for(),
             () => this.block(),
         ])
 
@@ -248,6 +250,7 @@ export class Parser {
         }
     }
 
+    // this is the wonder of js
     if(): IfExpression {
         this.consume("IF")
         const condition = this.expression()
@@ -265,6 +268,53 @@ export class Parser {
             condition,
             then,
             else: _else.value ?? null
+        }
+    }
+
+    // this too
+    for(): ForExpression {
+        this.consume("FOR")
+        const loopVariable = this.must("variable name please", () => this.consume<IdentifierToken>("IDENTIFIER"))
+        this.consume("IN")
+        const range = this.must("must be a range", () => this.range())
+        const block = this.must("must be a block", () => this.block())
+
+        return {
+            kind: "for",
+            loopVariable: {
+                kind: "identifier",
+                name: loopVariable.value
+            },
+            range,
+            block
+        }
+    }
+
+    while(): WhileExpression {
+        this.consume("WHILE")
+        const condition = this.must("while must have a condition", () => this.expression())
+        const block = this.must("must be a block", () => this.block())
+
+        return {
+            kind: "while",
+            condition,
+            block
+        }
+    }
+
+    range(): RangeExpression {
+        const from = this.factor();
+        const op = this.oneOf([
+            () => this.consume("DOT_DOT"),
+            () => this.consume("DOT_DOT_EQUAL"),
+        ])
+        const to = this.factor();
+
+        return {
+            kind: "range",
+            from,
+            to,
+            inclusive: op.type === "DOT_DOT_EQUAL"
         }
     }
 
@@ -390,8 +440,46 @@ export class Parser {
                     right,
                 }
             },
-            () => this.primary(),
+            () => this.call(),
         ])
+    }
+
+    call(): Expr {
+        const expression = this.primary()
+        
+        const args = this.safe(() => {
+            this.consume("LEFT_PAREN")
+            const { error, value } = this.safe(() => {
+                const first = this.expression();
+                const { out: rest, terminatingError } = this.consumeAll(() => {
+                    this.consume("COMMA")
+                    return this.expression()
+                })
+                if (terminatingError.kind === 'invalid') {
+                    throw terminatingError
+                }
+                return [first, ...rest]
+            })
+
+            if (error?.kind === "invalid") {
+                throw error
+            }
+        
+            // trailing comma
+            this.safe(() => this.consume("COMMA"))
+            this.consume("RIGHT_PAREN")
+            return value
+        })
+
+        if (args.ok) {
+            return {
+                kind: "call",
+                target: expression,
+                arguments: []
+            }
+        } 
+
+        return expression;
     }
 
     primary(): Expr {

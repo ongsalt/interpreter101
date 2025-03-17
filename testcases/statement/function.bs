@@ -1,0 +1,10 @@
+var a = 4;
+
+// very cursed
+var b = if 1 == 1 or a > { print "evaluated"; 10 } { 12 } else { 54 };
+
+print b;
+
+print now();
+
+// c(b == 12, b);

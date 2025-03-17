@@ -1,17 +1,21 @@
-import { unimplemented, unreachable } from "../../utils";
+import { unimplemented } from "../../utils";
 import { RuntimeError } from "../error";
 import type { Expr, Program, Statement } from "../grammar";
+import { Builtin } from "./builtin";
+import { isCallable, ObjectRegistry } from "./object";
 import { Scope } from "./scope";
-import { LoxValue } from "./value";
+import { LoxValue, type LoxCallable, type LoxObject } from "./value";
 
 export class Interpreter {
     scope = new Scope()
     currentScope = this.scope
+    registry = new ObjectRegistry()
 
     constructor(
         public program: Program
     ) {
-
+        const builtin = new Builtin(this)
+        builtin.setup()
     }
 
     run() {
@@ -42,7 +46,7 @@ export class Interpreter {
 
                 // math
                 if (right.kind !== "number" || left.kind !== "number") {
-                    throw new Error("Unimplemented")
+                    unimplemented(`both side of ${operator.lexeme} must be a number`)
                 }
                 switch (operator.type) {
                     case "PLUS":
@@ -113,8 +117,10 @@ export class Interpreter {
                 return value_
 
             case "if":
-                const { condition, else: _else, kind, then } = expression
+                const { condition, else: _else, then } = expression
                 const isOk = this.evaluate(condition);
+                // this does not behave the same as in rust
+                // TODO: i will change this later
                 if (LoxValue.isTruthy(isOk)) {
                     return this.evaluate(then)
                 } else if (_else) {
@@ -122,8 +128,46 @@ export class Interpreter {
                 } else {
                     return LoxValue.nil()
                 }
+
+            case "while":
+                while (LoxValue.isTruthy(this.evaluate(expression.condition))) {
+                    this.evaluate(expression.block)
+                }
+                return LoxValue.nil() // should be unit but whatever
+            case "for":
+                // TODO: implement an iterator
+                this.evaluate(expression.range)
+                return LoxValue.nil()
+            case "range":
+                // should i merge this with other binary expression???
+                const from = this.evaluate(expression.from)
+                const to = this.evaluate(expression.to)
+                if (from.kind !== "number" || to.kind !== "number") {
+                    unimplemented(`both side of range operator (../..=) must be a number`)
+                }
+
+                unimplemented("this wont work until we have an iterator")
+
+            case "call":
+                const { target, arguments: _arguments } = expression
+                const fn = this.evaluate(target)
+
+                if (isCallable(fn, this)) {
+                    const values = _arguments.map(it => this.evaluate(it))
+                    return this.callFn(fn as LoxObject, values)
+                }
+                throw new RuntimeError("type", "")
         }
-        unreachable(`Unimplemented expression: ${expression.kind}`)
+        unimplemented(`expression: ${expression.kind}`)
+    }
+
+    callFn(fn: LoxObject, args: LoxValue[]): LoxValue {
+        const impl = this.registry.get(fn.id)!.properties.get('__call__')! as LoxCallable
+        if (impl.arity !== args.length) {
+            throw new RuntimeError("type", `this funtion take only ${impl.arity} arguments, ${args.length} were supplied`)
+        }
+
+        return impl.call(this, args)
     }
 
     evaluateStatement(statement: Statement) {

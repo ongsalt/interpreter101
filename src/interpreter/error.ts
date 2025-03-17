@@ -7,7 +7,7 @@ export type InterpreterError = {
 }
 
 export type ParserErrorKind = "expected" | "invalid"
-export type RuntimeErrorKind = "identifier-not-found" | "unsupported-operation"
+export type RuntimeErrorKind = "identifier-not-found" | "unsupported-operation" | "type"
 
 export class ParserError extends Error {
     constructor(public kind: ParserErrorKind, message: string = "", token?: Token) {

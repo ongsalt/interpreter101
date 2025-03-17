@@ -1,6 +1,6 @@
-import type { KeywordTokenType } from "./token";
+import type { KeywordTokenType, LiteralTokenType, UnitLiteralToken } from "./token";
 
-export const keywords = new Map<string, KeywordTokenType>()
+export const keywords = new Map<string, KeywordTokenType | UnitLiteralToken["type"]>() // without identifier
 keywords.set("and", "AND")
 keywords.set("class", "CLASS")
 keywords.set("else", "ELSE")
@@ -17,3 +17,4 @@ keywords.set("this", "THIS")
 keywords.set("true", "TRUE")
 keywords.set("var", "VAR")
 keywords.set("while", "WHILE")
+keywords.set("in", "IN")

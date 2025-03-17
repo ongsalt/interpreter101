@@ -29,12 +29,19 @@ export class Lexer {
                 case '{': this.addNonLiteralToken("LEFT_BRACE"); break;
                 case '}': this.addNonLiteralToken("RIGHT_BRACE"); break;
                 case ',': this.addNonLiteralToken("COMMA"); break;
-                case '.': this.addNonLiteralToken("DOT"); break;
                 case '-': this.addNonLiteralToken("MINUS"); break;
                 case '+': this.addNonLiteralToken("PLUS"); break;
                 case ';': this.addNonLiteralToken("SEMICOLON"); break;
                 case '*': this.addNonLiteralToken("STAR"); break;
 
+                case '.': {
+                    if (this.match('.')) {
+                        this.addNonLiteralToken(this.match('=') ? "DOT_DOT_EQUAL" : "DOT_DOT");
+                    } else {
+                        this.addNonLiteralToken("DOT");
+                    }
+                    break
+                };
                 case '!':
                     this.addNonLiteralToken(this.match('=') ? "BANG_EQUAL" : "BANG");
                     break;

@@ -1,7 +1,8 @@
 import { unreachable } from "../../utils"
 import type { LiteralToken } from "../token"
+import type { Interpreter } from "./interpreter"
 
-export type LoxValue = LoxString | LoxNumber | LoxBoolean | LoxObject | LoxUnit
+export type LoxValue = LoxString | LoxNumber | LoxBoolean | LoxObject | LoxUnit | LoxCallable
 
 export type LoxString = {
     kind: "string",
@@ -26,6 +27,12 @@ export type LoxBoolean = {
 export type LoxObject = {
     kind: "object",
     id: number // object id
+}
+
+export type LoxCallable = {
+    kind: "callable",
+    arity: number,
+    call: (interpreter: Interpreter, args: LoxValue[]) => LoxValue
 }
 
 function of<T>(value: T):

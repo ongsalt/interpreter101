@@ -35,6 +35,12 @@ export type Identifier = {
     name: string
 }
 
+export type CallExpression = {
+    kind: "call",
+    target: Expr,
+    arguments: Expr[]
+}
+
 // will this make thing complicate 
 export type BlockExpression = {
     kind: "block",
@@ -50,11 +56,23 @@ export type IfExpression = {
 }
 
 export type ForExpression = {
-    kind: "for"
+    kind: "for",
+    loopVariable: Identifier,
+    range: RangeExpression,
+    block: BlockExpression
+}
+
+export type RangeExpression = {
+    kind: "range"
+    inclusive: boolean,
+    from: Expr,
+    to: Expr
 }
 
 export type WhileExpression = {
-    kind: "while"
+    kind: "while",
+    condition: Expr,
+    block: BlockExpression,
 }
 
 export type AssignmentExpression = {
@@ -64,8 +82,7 @@ export type AssignmentExpression = {
 }
 
 export type Expr = BinaryExpr | Grouping | Literal | Unary | Identifier | BlockExpression | AssignmentExpression
-    | IfExpression | ForExpression | WhileExpression
-
+    | IfExpression | ForExpression | WhileExpression | RangeExpression | CallExpression
 
         
 export type ExpressionStatement = {
